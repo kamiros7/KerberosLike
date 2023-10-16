@@ -3,8 +3,11 @@ package org.camilo.controller;
 import org.camilo.model.as.ClientASResponse;
 import org.camilo.model.as.ClientInfoASMessage;
 import org.camilo.model.as.ClientInfoASResponse;
+import org.camilo.model.serviceProduct.ClientInfoMessage;
+import org.camilo.model.tgs.ClientInfoTGSResponse;
 import org.camilo.model.tgs.TGSResponse;
 import org.camilo.service.as.ASService;
+import org.camilo.service.serviceProduct.SPService;
 import org.camilo.service.tgs.TGSService;
 import org.camilo.utils.AppConfigUtils;
 import org.camilo.utils.Utils;
@@ -25,10 +28,13 @@ import java.util.Scanner;
 public class KerberosController {
     private final ASService asService = new ASService();
     private final TGSService tgsService = new TGSService();
+    private final SPService spService = new SPService();
     private final static String AS_RESPONSE_PATH = "/resources/files/asResponse.txt";
     private final static String TGS_RESPONSE_PATH = "/resources/files/tgsResponse.txt";
     private List<Object> constraints = new ArrayList<>();
 
+    public KerberosController() {
+    }
     public void buildNewConstraints() {
         Scanner scanner = new Scanner(System.in);
 
@@ -54,7 +60,7 @@ public class KerberosController {
     public void requestTgsTicket() {
         //To doesn't generate null pointer exception
         if(constraints.isEmpty()) {
-            return;
+            throw new RuntimeException("Constraints is NULL!");
         }
         //Communication with AS to obtain the access to TGS server
         String ASJsonResponse = "";
@@ -84,7 +90,7 @@ public class KerberosController {
     public Object[] validateAsResponse() {
         //To doesn't generate null pointer exception
         if(constraints.isEmpty()) {
-            return new Object[]{};
+            throw new RuntimeException("Constraints is NULL!");
         }
         //Get the ticket and another information saved in file
         String asResponseJson = Utils.readFile(AS_RESPONSE_PATH);
@@ -109,7 +115,7 @@ public class KerberosController {
     public void requestServiceTicket() {
         //To doesn't generate null pointer exception
         if(constraints.isEmpty()) {
-            return;
+            throw new RuntimeException("Constraints is NULL!");
         }
         //Communication with TGS to obtain the ticket to use the services
         String jsonClientMessage = "";
@@ -119,7 +125,7 @@ public class KerberosController {
         ClientASResponse clientASResponse = (ClientASResponse) clientInfo[0];
         ClientInfoASResponse clientInfoASResponse = (ClientInfoASResponse) clientInfo[1];
 
-        if(clientInfoASResponse != null) {
+        if(clientInfoASResponse != null && clientASResponse != null) {
             try {
                 String encryptedClientMessage = tgsService.buildEncryptedClientMessage(clientInfoASResponse, (int) constraints.get(0), (int) constraints.get(1), (long) constraints.get(3));
                 jsonClientMessage = tgsService.buildJsonClientMessage(encryptedClientMessage, clientASResponse.getTgsTicket());
@@ -138,20 +144,61 @@ public class KerberosController {
         Utils.writeFile(tgsJsonResponse, TGS_RESPONSE_PATH);
     }
 
-    public void validateTgsResponse() {
+    public Object[] validateTgsResponse() {
         //To doesn't generate null pointer exception
-        /*if(constraints.isEmpty()) {
-            return;
-        }*/
+        if(constraints.isEmpty()) {
+            throw new RuntimeException("Constraints is NULL!");
+        }
 
         String tgsJsonResponse = Utils.readFile(TGS_RESPONSE_PATH);
-
-        System.out.println("tgsJsonResponse: " + tgsJsonResponse);
         TGSResponse tgsResponse = tgsService.buildTGSResponse(tgsJsonResponse);
-        System.out.println(tgsResponse.toString());
+
+        //The sessionKey was created in AS Server and sending to client. Was stored in .txt file
+        //and with validateAsResponse is get this string, decrypted to get the session key again
+        ClientInfoASResponse clientInfoASResponse = (ClientInfoASResponse) validateAsResponse()[1];
+        if(clientInfoASResponse == null) {
+            throw new RuntimeException("Without session key to decrypt the data!");
+        }
+        ClientInfoTGSResponse clientInfoTGSResponse;
+        try {
+            clientInfoTGSResponse = tgsService.buildClientInfoTGSResponse(tgsResponse.getEncryptedClientResponse(), clientInfoASResponse.getSessionKey());
+            if(tgsService.validateN2Number((long) constraints.get(2), clientInfoTGSResponse.getRandomNumber())) {
+                System.out.println("Random number N2 are different");
+                System.exit(0);
+            }
+        } catch (InvalidKeySpecException | InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException |
+                 IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException(e);
+        }
+        return new Object[]{tgsResponse, clientInfoTGSResponse};
     }
 
     public void requestService() {
+        //To doesn't generate null pointer exception
+        if(constraints.isEmpty()) {
+            throw new RuntimeException("Constraints is NULL!");
+        }
+
+        Object[] clientInfo = validateTgsResponse();
+        TGSResponse tgsResponse = (TGSResponse) clientInfo[0];
+        ClientInfoTGSResponse clientInfoTGSResponse = (ClientInfoTGSResponse) clientInfo[1];
+        ClientInfoMessage clientInfoMessage = spService.buildClientInfoMessage(Integer.parseInt(AppConfigUtils.getInstance().getClientId()), (int) constraints.get(0), (int) constraints.get(1), (Long) constraints.get(4));
+
+        if(tgsResponse != null && clientInfoTGSResponse != null) {
+             try {
+                String encryptedClientInfoMessage = spService.encryptedClientInfoMessage(clientInfoMessage, "");
+                //String encryptedClientMessage = tgsService.buildEncryptedClientMessage(clientInfoASResponse, (int) constraints.get(0), (int) constraints.get(1), (long) constraints.get(3));
+                //jsonClientMessage = tgsService.buildJsonClientMessage(encryptedClientMessage, clientASResponse.getTgsTicket());
+                //tgsJsonResponse = tgsService.sendClientMessage(jsonClientMessage);
+                //if(tgsJsonResponse.isEmpty()) {
+                    System.out.println("Cannot send message to server");
+                    System.exit(0);
+                //}
+            } catch (InvalidKeySpecException | BadPaddingException | IllegalBlockSizeException |
+                     NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
     }
 

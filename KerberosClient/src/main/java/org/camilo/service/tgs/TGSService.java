@@ -2,6 +2,7 @@ package org.camilo.service.tgs;
 
 import com.google.gson.Gson;
 import org.camilo.model.as.ClientInfoASResponse;
+import org.camilo.model.tgs.ClientInfoTGSResponse;
 import org.camilo.model.tgs.ClientMessage;
 import org.camilo.model.tgs.ClientInfoMessage;
 import org.camilo.model.tgs.TGSResponse;
@@ -29,7 +30,7 @@ public class TGSService {
         clientInfoMessage.setRandomNumber(randomNumberN2);
 
         String encryptedClientMessageJson = GSON.toJson(clientInfoMessage);
-        SecretKey key = CryptUtils.getKeyFromPassword(response.getSessionKey(),"2");
+        SecretKey key = CryptUtils.getKeyFromPassword(response.getSessionKey(), "2");
         Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         cipher.init(Cipher.ENCRYPT_MODE, key);
         byte[] cipherText = cipher.doFinal(encryptedClientMessageJson.getBytes());
@@ -93,5 +94,23 @@ public class TGSService {
 
     public TGSResponse buildTGSResponse(String tgsJsonResponse) {
         return GSON.fromJson(tgsJsonResponse, TGSResponse.class);
+    }
+
+    public ClientInfoTGSResponse buildClientInfoTGSResponse(String encryptedData, String sessionKey) throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+        String decryptedMessage = decryptClientTGSResponse(encryptedData, sessionKey);
+        return GSON.fromJson(decryptedMessage, ClientInfoTGSResponse.class);
+    }
+
+    private String decryptClientTGSResponse(String encryptedData, String sessionKey) throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+        SecretKey key = CryptUtils.getKeyFromPassword(sessionKey, "2");
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] plainText = cipher.doFinal(Base64.getDecoder()
+                .decode(encryptedData));
+        return new String(plainText);
+    }
+
+    public boolean validateN2Number(Long localN2, Long serverN2) {
+        return localN2.equals(serverN2);
     }
 }

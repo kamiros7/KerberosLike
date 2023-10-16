@@ -105,8 +105,6 @@ public class ASService {
     }
 
     private String decryptClientASMessageResponse(ClientASResponse clientASResponse) throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-
-
         SecretKey key = CryptUtils.getKeyFromPassword(AppConfigUtils.getInstance().getPasswordClient(),"2");
         Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         cipher.init(Cipher.DECRYPT_MODE, key);
