@@ -19,6 +19,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
+//TODO implementar token com tempo
 @RestController
 @RequestMapping("/tgs")
 public class TGSController {
@@ -30,6 +31,11 @@ public class TGSController {
         try {
             String decryptTgsTicket = cryptService.decryptTgsTicket(clientMessage.getTgsTicket());
             TGSTicket tgsTicket = cryptService.buildTGSTicket(decryptTgsTicket);
+            if(!cryptService.validateTgsTicket(tgsTicket)) {
+                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+                        .body("Your ticket to use the TGS server not is acceptable");
+            }
+
             String decryptClientInfo = cryptService.decryptClientInfo(clientMessage.getEncryptedData(), tgsTicket.getSessionKey());
             ClientInfoMessage clientInfoMessage = cryptService.buildClientInfo(decryptClientInfo);
 

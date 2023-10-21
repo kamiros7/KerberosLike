@@ -47,7 +47,6 @@ public class TGSService {
 
     public String sendClientMessage(String clientMessage) throws IOException {
         // URL to send the POST request to
-        //TODO change URL
         URL url = new URL("http://localhost:8282/tgs/ticket");
 
         // Open a connection to the URL
@@ -84,7 +83,6 @@ public class TGSService {
                 // Parse the JSON response
                 jsonResponse = responseBuilder.toString();
                 // Now you can work with the JSON data in 'jsonResponse'
-                System.out.println("JSON Response: " + jsonResponse);
             }
         }
 

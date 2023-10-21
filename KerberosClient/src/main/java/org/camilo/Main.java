@@ -15,30 +15,34 @@ public class Main {
             System.out.println("1 - Get TGS Ticket");
             System.out.println("2 - Get Service Ticket");
             System.out.println("3 - Use Service");
-            System.out.println("4 - Use Service");
 
-            int step = scanner.nextInt();
-            switch (step) {
-                case 1:
-                    kerberosController.buildNewConstraints();
-                    kerberosController.requestTgsTicket();
-                    break;
-                case 2:
-                    kerberosController.validateAsResponse();
-                    kerberosController.requestServiceTicket();
-                    break;
-                case 3:
-                    kerberosController.validateTgsResponse();
-                    kerberosController.requestService();
-                    kerberosController.validateServiceResponse();
-                    break;
-                default:
-                    exit = true;
-                    break;
-            }
+            if(scanner.hasNextInt()) {
+                int step = scanner.nextInt();
+                switch (step) {
+                    case 1:
+                        kerberosController.buildNewConstraints();
+                        kerberosController.requestTgsTicket();
+                        break;
+                    case 2:
+                        //kerberosController.validateAsResponse();
+                        kerberosController.requestServiceTicket();
+                        break;
+                    case 3:
+                        //kerberosController.validateTgsResponse();
+                        kerberosController.requestService();
+                        kerberosController.validateServiceResponse();
+                        break;
+                    default:
+                        exit = true;
+                        break;
+                }
 
-            if(exit) {
-                break;
+                if(exit) {
+                    break;
+                }
+            } else {
+                System.out.println("Invalid input. Please enter a valid integer.");
+                //scanner.next(); // Consume the invalid input to prevent an infinite loop
             }
         }
     }

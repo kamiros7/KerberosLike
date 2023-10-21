@@ -3,7 +3,7 @@ package com.example.KerberosLike.service;
 import com.example.KerberosLike.model.ClientResponse;
 import com.example.KerberosLike.model.CryptClientMessage;
 import com.example.KerberosLike.model.CryptClientInfoResponse;
-import com.example.KerberosLike.model.TGSMessage;
+import com.example.KerberosLike.model.TGSTicket;
 import com.example.KerberosLike.utils.CryptUtils;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+import java.util.Calendar;
 
 @Service
 public class CryptService {
@@ -43,19 +44,20 @@ public class CryptService {
         return GSON.fromJson(decryptClientMessage, CryptClientMessage.class);
     }
 
-    private TGSMessage buildTGSTicket(int clientId, int serviceTime) {
-        TGSMessage tgsMessage = new TGSMessage();
-        tgsMessage.setClientId(clientId);
-        tgsMessage.setServiceTime(serviceTime);
-        tgsMessage.setSessionKey(generateRandomString(25));
-        return tgsMessage;
+    private TGSTicket buildTGSTicket(int clientId, int serviceTime) {
+        TGSTicket tgsTicket = new TGSTicket();
+        tgsTicket.setClientId(clientId);
+        tgsTicket.setServiceTime(serviceTime);
+        tgsTicket.setSessionKey(generateRandomString(25));
+        tgsTicket.setCreatedDate(Calendar.getInstance());
+        return tgsTicket;
     }
 
     public String buildClientResponse(Long randomNumber, int clientId, int serviceTime) throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-        TGSMessage tgsMessage = buildTGSTicket(clientId,serviceTime);
+        TGSTicket tgsTicket = buildTGSTicket(clientId,serviceTime);
         CryptClientInfoResponse cryptClientInfoResponse = new CryptClientInfoResponse();
         cryptClientInfoResponse.setRandomNumber(randomNumber);
-        cryptClientInfoResponse.setSessionKey(tgsMessage.getSessionKey());
+        cryptClientInfoResponse.setSessionKey(tgsTicket.getSessionKey());
 
         String cryptClientResponseJson = GSON.toJson(cryptClientInfoResponse);
 
@@ -71,8 +73,8 @@ public class CryptService {
                 .encodeToString(cipherText);
 
         //Encrypt ticket
-        String tgsTicketJson = GSON.toJson(tgsMessage);
-        messageBytes = cryptClientResponseJson.getBytes();
+        String tgsTicketJson = GSON.toJson(tgsTicket);
+        messageBytes = tgsTicketJson.getBytes();
 
         key = CryptUtils.getKeyFromPassword(passwordTgs,"2");
         cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");

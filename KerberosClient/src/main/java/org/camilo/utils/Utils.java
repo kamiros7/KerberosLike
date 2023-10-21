@@ -3,6 +3,8 @@ package org.camilo.utils;
 import java.io.*;
 
 public class Utils {
+    private ClassLoader classLoader = Utils.class.getClassLoader();
+
     public static void writeFile(String message, String path) {
         try {
             FileWriter fileWriter = new FileWriter(path);
@@ -41,3 +43,23 @@ public class Utils {
         return message;
     }
 }
+
+/*
+ InputStream inputStream = classLoader.getResourceAsStream(path);
+            if(inputStream == null) {
+                throw new IOException(path + " file not found!");
+            }
+            InputStreamReader streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+
+            //FileReader fileReader = new FileReader(path);
+            BufferedReader bufferedReader = new BufferedReader(streamReader);
+
+            StringBuilder stringBuilder = new StringBuilder();
+            String line;
+
+            while ((line = bufferedReader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+            bufferedReader.close();
+            message = stringBuilder.toString();
+ */

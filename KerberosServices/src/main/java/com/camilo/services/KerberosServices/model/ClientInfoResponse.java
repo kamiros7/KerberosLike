@@ -1,8 +1,8 @@
-package org.camilo.model.serviceProduct;
+package com.camilo.services.KerberosServices.model;
 
 import java.io.Serializable;
 
-public class ServiceProductInfoResponse implements Serializable {
+public class ClientInfoResponse implements Serializable {
     private String response;
     private Long randomNumber;
 
@@ -20,5 +20,13 @@ public class ServiceProductInfoResponse implements Serializable {
 
     public void setRandomNumber(Long randomNumber) {
         this.randomNumber = randomNumber;
+    }
+
+    @Override
+    public String toString() {
+        return "ClientInfoResponse{" +
+                "response='" + response + '\'' +
+                ", randomNumber=" + randomNumber +
+                '}';
     }
 }

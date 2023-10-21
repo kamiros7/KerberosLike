@@ -1,9 +1,8 @@
-package com.camilo.TGSServer.model;
+package com.camilo.services.KerberosServices.model;
 
-import java.io.Serializable;
 import java.util.Calendar;
 
-public class TCSTicket implements Serializable {
+public class TCSTicket {
     private int idClient;
     private int serviceTime;
     private String sessionKey;

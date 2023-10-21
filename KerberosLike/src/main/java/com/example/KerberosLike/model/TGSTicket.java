@@ -1,11 +1,13 @@
 package com.example.KerberosLike.model;
 
 import java.io.Serializable;
+import java.util.Calendar;
 
-public class TGSMessage implements Serializable {
+public class TGSTicket implements Serializable {
     private int clientId;
     private int serviceTime;
     private String sessionKey;
+    private Calendar createdDate;
 
     public int getClientId() {
         return clientId;
@@ -29,5 +31,13 @@ public class TGSMessage implements Serializable {
 
     public void setSessionKey(String sessionKey) {
         this.sessionKey = sessionKey;
+    }
+
+    public Calendar getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(Calendar createdDate) {
+        this.createdDate = createdDate;
     }
 }

@@ -4,6 +4,8 @@ import org.camilo.model.as.ClientASResponse;
 import org.camilo.model.as.ClientInfoASMessage;
 import org.camilo.model.as.ClientInfoASResponse;
 import org.camilo.model.serviceProduct.ClientInfoMessage;
+import org.camilo.model.serviceProduct.ServiceProductInfoResponse;
+import org.camilo.model.serviceProduct.ServiceProductResponse;
 import org.camilo.model.tgs.ClientInfoTGSResponse;
 import org.camilo.model.tgs.TGSResponse;
 import org.camilo.service.as.ASService;
@@ -29,14 +31,16 @@ public class KerberosController {
     private final ASService asService = new ASService();
     private final TGSService tgsService = new TGSService();
     private final SPService spService = new SPService();
-    private final static String AS_RESPONSE_PATH = "/resources/files/asResponse.txt";
-    private final static String TGS_RESPONSE_PATH = "/resources/files/tgsResponse.txt";
+    private final static String AS_RESPONSE_PATH = "src/main/resources/files/asResponse.txt";
+    private final static String TGS_RESPONSE_PATH = "src/main/resources/files/tgsResponse.txt";
+    private final static String SP_RESPONSE_PATH = "src/main/resources/files/spResponse.txt";
     private List<Object> constraints = new ArrayList<>();
+
+    private static final Scanner scanner = new Scanner(System.in);
 
     public KerberosController() {
     }
     public void buildNewConstraints() {
-        Scanner scanner = new Scanner(System.in);
 
         System.out.print("Inform the service: ");
         int serviceId = scanner.nextInt();
@@ -55,7 +59,6 @@ public class KerberosController {
         constraints.add(randomNumberN2);
         constraints.add(randomNumberN3);
 
-        scanner.close();
     }
     public void requestTgsTicket() {
         //To doesn't generate null pointer exception
@@ -186,23 +189,42 @@ public class KerberosController {
 
         if(tgsResponse != null && clientInfoTGSResponse != null) {
              try {
-                String encryptedClientInfoMessage = spService.encryptedClientInfoMessage(clientInfoMessage, "");
-                //String encryptedClientMessage = tgsService.buildEncryptedClientMessage(clientInfoASResponse, (int) constraints.get(0), (int) constraints.get(1), (long) constraints.get(3));
-                //jsonClientMessage = tgsService.buildJsonClientMessage(encryptedClientMessage, clientASResponse.getTgsTicket());
-                //tgsJsonResponse = tgsService.sendClientMessage(jsonClientMessage);
-                //if(tgsJsonResponse.isEmpty()) {
+                String encryptedClientInfoMessage = spService.buildEncryptedClientInfoMessage(clientInfoMessage, clientInfoTGSResponse.getSessionKey());
+                String jsonClientMessage = spService.buildJsonClientMessage(encryptedClientInfoMessage, tgsResponse.getEncryptedTcsTicket());
+                String spJsonResponse = spService.sendClientMessage(jsonClientMessage, clientInfoMessage.getServiceId());
+                if(spJsonResponse.isEmpty()) {
                     System.out.println("Cannot send message to server");
                     System.exit(0);
-                //}
+                }
+                 //Saving the TGS Response
+                 Utils.writeFile(spJsonResponse, SP_RESPONSE_PATH);
             } catch (InvalidKeySpecException | BadPaddingException | IllegalBlockSizeException |
-                     NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException e) {
+                     NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | IOException e) {
                 throw new RuntimeException(e);
             }
         }
-
     }
 
     public void validateServiceResponse() {
+        //To doesn't generate null pointer exception
+        if(constraints.isEmpty()) {
+            throw new RuntimeException("Constraints is NULL!");
+        }
 
+        String spJsonResponse = Utils.readFile(SP_RESPONSE_PATH);
+        ServiceProductResponse serviceProductResponse = spService.buildServiceProductResponse(spJsonResponse);
+        ClientInfoTGSResponse clientInfoTGSResponse = (ClientInfoTGSResponse) validateTgsResponse()[1];
+
+        try {
+            ServiceProductInfoResponse serviceProductInfoResponse = spService.buildServiceProductInfoResponse(serviceProductResponse.getEncryptedData(), clientInfoTGSResponse.getSessionKey());
+            if(spService.validateN3Number((long) constraints.get(3), serviceProductInfoResponse.getRandomNumber())) {
+                System.out.println("Random number N2 are different");
+                System.exit(0);
+            }
+            System.out.println("FINAL RESPONSE: " + serviceProductInfoResponse.getResponse());
+        } catch (InvalidKeySpecException | InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException |
+                 IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
